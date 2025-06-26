@@ -7,6 +7,8 @@ from config import load_config, save_config
 from downloader import download
 from playlist_info import get_playlist_info
 from progress import make_progress_hook
+from logic import collect_download_params, validate_params, build_config_for_download
+from logger import update_log
 
 import sys
 
@@ -217,19 +219,11 @@ class YTDownloaderApp(tk.Tk):
     def start_download(self):
         if self.downloading:
             return
-        urls = [u.strip() for u in self.url_text.get("1.0", "end").strip().splitlines() if u.strip()]
-        if not urls:
-            self.show_error("请至少输入一个有效链接。")
+        params = collect_download_params(self)
+        valid, errmsg = validate_params(params)
+        if not valid:
+            self.show_error(errmsg)
             return
-        if not os.path.isdir(self.path_var.get()):
-            self.show_error("下载路径无效。")
-            return
-        # 分辨率、码率、字幕、封面等参数校验
-        fmt = self.format_var.get()
-        if not fmt:
-            self.show_error("请选择文件格式。")
-            return
-        # ...可扩展更多校验...
         self.save_settings()
         self.downloading = True
         self.status_var.set("正在下载...")
@@ -238,27 +232,10 @@ class YTDownloaderApp(tk.Tk):
         self.start_btn.config(state="disabled")
         self.pause_btn.config(state="normal")
         self.cancel_btn.config(state="normal")
-        playlist_range = None
-        if self.mode_var.get() == "playlist":
-            start = self.range_start.get().strip()
-            end = self.range_end.get().strip()
-            if start and end:
-                playlist_range = f"{start}-{end}"
-        config_copy = self.config.copy()
-        download_path = self.path_var.get()
-        if not download_path.endswith(os.sep):
-            download_path += os.sep
-        if self.mode_var.get() == "playlist":
-            outtmpl = os.path.join(download_path, "%(playlist_index)s-%(title)s.%(ext)s")
-        else:
-            outtmpl = os.path.join(download_path, "%(title)s.%(ext)s")
-        config_copy["output_template"] = outtmpl
-        # 高级参数
-        config_copy["resolution"] = self.resolution_var.get()
-        config_copy["bitrate"] = self.bitrate_var.get()
-        config_copy["download_subtitle"] = self.subtitle_var.get()
-        config_copy["download_cover"] = self.cover_var.get()
-        config_copy["file_format"] = fmt
+        self._stop_event.clear()
+        self._pause_event.clear()
+        config_copy = build_config_for_download(self.config, params)
+        playlist_range = params["playlist_range"]
 
         def update_progress(percent, d):
             self.status_var.set(f"下载进度: {percent:.1f}%")
@@ -292,7 +269,7 @@ class YTDownloaderApp(tk.Tk):
         def run_with_retry(retry=2):
             for attempt in range(1, retry+2):
                 try:
-                    download(urls, config_copy, make_progress_hook(self._wrap_progress(update_progress)), playlist_range, stop_event=self._stop_event, pause_event=self._pause_event)
+                    download(params["urls"], config_copy, make_progress_hook(self._wrap_progress(update_progress)), playlist_range, stop_event=self._stop_event, pause_event=self._pause_event)
                     self.status_var.set("下载完成。")
                     break
                 except Exception as e:
@@ -340,13 +317,23 @@ class YTDownloaderApp(tk.Tk):
         self.pause_btn.config(state="disabled")
         self.cancel_btn.config(state="disabled")
         # 线程会自动检测 _stop_event 并退出
+        # 新增：等待线程最多2秒，超时强制提示
+        def wait_cancel():
+            self.download_thread.join(timeout=2)
+            if self.download_thread.is_alive():
+                self.status_var.set("取消请求已发送，部分任务可能仍在处理中。")
+            else:
+                self.status_var.set("下载已取消。")
+            self.downloading = False
+            self.start_btn.config(state="normal")
+            self.pause_btn.config(state="disabled")
+            self.cancel_btn.config(state="disabled")
+        threading.Thread(target=wait_cancel, daemon=True).start()
 
     def show_error(self, msg):
         self.status_var.set(msg)
         self.status_label.config(foreground="red")
-        self.progress_listbox.insert("end", f"[错误] {msg}")
-        self.progress_listbox.itemconfig("end", foreground="red")
-        self.progress_listbox.see("end")
+        update_log(self.progress_listbox, f"[错误] {msg}", error=True)
 
     def _format_speed(self, speed):
         # speed: bytes/sec
