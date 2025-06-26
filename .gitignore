@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# VSCode
+.vscode/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# 环境/依赖
+env/
+venv/
+ENV/
+.venv/
+.Python
+
+# 配置和日志
+*.log
+*.bak
+*.swp
+*.tmp
+*.old
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 用户配置
+yt_downloader_config.json
+~/.yt_downloader_config.json
+
+# Cookie/隐私
+cookies.txt
+
+# 其它
+.idea/
+*.iml
