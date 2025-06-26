@@ -12,12 +12,10 @@ class YTDownloaderApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("YouTube 视频下载器")
-        self.geometry("600x650")
-        self.resizable(True, True)  # 允许调整窗口大小
-        # 设置字体
+        self.geometry("700x750")
+        self.resizable(True, True)
         self.default_font = ("微软雅黑", 11)
         self.option_add("*Font", self.default_font)
-        # 设置窗口图标（如有icon.ico）
         icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
         if os.path.exists(icon_path):
             self.iconbitmap(icon_path)
@@ -36,12 +34,12 @@ class YTDownloaderApp(tk.Tk):
 
         # 2. URL输入
         ttk.Label(self, text="YouTube链接（每行一个）:").grid(row=1, column=0, sticky="w", padx=10)
-        self.url_text = tk.Text(self, height=5, width=50, font=self.default_font)
-        self.url_text.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=10)
+        self.url_text = tk.Text(self, height=5, width=60, font=self.default_font)
+        self.url_text.grid(row=2, column=0, columnspan=4, sticky="nsew", padx=10)
 
         # 3. 播放列表选项
         self.playlist_frame = ttk.LabelFrame(self, text="播放列表选项")
-        self.playlist_frame.grid(row=3, column=0, columnspan=3, sticky="nsew", padx=10, pady=8)
+        self.playlist_frame.grid(row=3, column=0, columnspan=4, sticky="nsew", padx=10, pady=8)
         ttk.Label(self.playlist_frame, text="范围:").grid(row=0, column=0, padx=5, pady=5)
         self.range_start = ttk.Entry(self.playlist_frame, width=5)
         self.range_start.grid(row=0, column=1, padx=2)
@@ -60,62 +58,106 @@ class YTDownloaderApp(tk.Tk):
         self.path_entry.grid(row=4, column=1, sticky="ew", padx=2)
         ttk.Button(self, text="浏览", command=self.browse_path).grid(row=4, column=2, padx=2)
 
-        # 5. 文件格式
+        # 5. 文件格式（扩展更多格式）
         ttk.Label(self, text="文件格式:").grid(row=5, column=0, sticky="w", padx=10, pady=8)
         self.format_var = tk.StringVar()
-        self.format_combo = ttk.Combobox(self, textvariable=self.format_var, values=["mp4", "mp3", "m4a", "webm"], state="readonly", width=10)
+        self.format_combo = ttk.Combobox(
+            self, textvariable=self.format_var,
+            values=["mp4", "mp3", "m4a", "webm", "flac", "wav", "aac", "opus", "mov", "avi"],
+            state="readonly", width=12)
         self.format_combo.grid(row=5, column=1, sticky="ew", padx=2)
 
-        # 6. 代理设置
+        # 6. 分辨率选择
+        ttk.Label(self, text="分辨率:").grid(row=6, column=0, sticky="w", padx=10)
+        self.resolution_var = tk.StringVar()
+        self.resolution_combo = ttk.Combobox(
+            self, textvariable=self.resolution_var,
+            values=["最高", "2160p", "1440p", "1080p", "720p", "480p", "360p", "240p", "音频"],
+            state="readonly", width=12)
+        self.resolution_combo.grid(row=6, column=1, sticky="ew", padx=2)
+        self.resolution_combo.set("最高")
+
+        # 7. 码率选择
+        ttk.Label(self, text="音频码率:").grid(row=6, column=2, sticky="e", padx=2)
+        self.bitrate_var = tk.StringVar()
+        self.bitrate_combo = ttk.Combobox(
+            self, textvariable=self.bitrate_var,
+            values=["默认", "320k", "256k", "192k", "128k", "64k"],
+            state="readonly", width=10)
+        self.bitrate_combo.grid(row=6, column=3, sticky="ew", padx=2)
+        self.bitrate_combo.set("默认")
+
+        # 8. 其它高级选项
+        self.subtitle_var = tk.BooleanVar()
+        self.cover_var = tk.BooleanVar()
+        ttk.Checkbutton(self, text="下载字幕", variable=self.subtitle_var).grid(row=7, column=0, sticky="w", padx=10)
+        ttk.Checkbutton(self, text="下载封面", variable=self.cover_var).grid(row=7, column=1, sticky="w", padx=2)
+
+        # 9. 代理设置
         self.use_proxy_var = tk.BooleanVar()
         self.proxy_check = ttk.Checkbutton(self, text="使用代理", variable=self.use_proxy_var, command=self.on_proxy_toggle)
-        self.proxy_check.grid(row=6, column=0, sticky="w", padx=10, pady=8)
-        ttk.Label(self, text="代理地址（如 http://127.0.0.1:10808）:").grid(row=6, column=1, sticky="e", padx=2)
+        self.proxy_check.grid(row=8, column=0, sticky="w", padx=10, pady=8)
+        ttk.Label(self, text="代理地址（如 http://127.0.0.1:10808）:").grid(row=8, column=1, sticky="e", padx=2)
         self.proxy_var = tk.StringVar()
         self.proxy_entry = ttk.Entry(self, textvariable=self.proxy_var, width=30)
-        self.proxy_entry.grid(row=6, column=2, sticky="ew", padx=2)
+        self.proxy_entry.grid(row=8, column=2, columnspan=2, sticky="ew", padx=2)
 
-        # 7. Cookie文件
-        ttk.Label(self, text="Cookie文件路径:").grid(row=7, column=0, sticky="w", padx=10, pady=8)
+        # 10. Cookie文件
+        ttk.Label(self, text="Cookie文件路径:").grid(row=9, column=0, sticky="w", padx=10, pady=8)
         self.cookie_var = tk.StringVar()
         self.cookie_entry = ttk.Entry(self, textvariable=self.cookie_var, width=40)
-        self.cookie_entry.grid(row=7, column=1, sticky="ew", padx=2)
-        ttk.Button(self, text="浏览", command=self.browse_cookie).grid(row=7, column=2, padx=2)
+        self.cookie_entry.grid(row=9, column=1, sticky="ew", padx=2)
+        ttk.Button(self, text="浏览", command=self.browse_cookie).grid(row=9, column=2, padx=2)
         self.cookie_entry_tooltip = ttk.Label(self, text="请用浏览器导出Netscape格式的cookie文件", foreground="gray")
-        self.cookie_entry_tooltip.grid(row=8, column=1, sticky="w", padx=2)
+        self.cookie_entry_tooltip.grid(row=10, column=1, sticky="w", padx=2)
 
-        # 8. 操作按钮
+        # 11. 操作按钮
         self.start_btn = tk.Button(self, text="开始下载", command=self.start_download, bg="#4CAF50", fg="white", activebackground="#388E3C", width=12)
-        self.start_btn.grid(row=9, column=0, pady=15)
+        self.start_btn.grid(row=11, column=0, pady=15)
         self.pause_btn = tk.Button(self, text="暂停下载", state="disabled", bg="#FFA726", fg="white", activebackground="#F57C00", width=12)
-        self.pause_btn.grid(row=9, column=1)
+        self.pause_btn.grid(row=11, column=1)
         self.cancel_btn = tk.Button(self, text="取消下载", state="disabled", bg="#E57373", fg="white", activebackground="#C62828", width=12)
-        self.cancel_btn.grid(row=9, column=2)
+        self.cancel_btn.grid(row=11, column=2)
 
-        # 9. 状态/进度
+        # 12. 进度条
+        self.progressbar = ttk.Progressbar(self, orient="horizontal", length=400, mode="determinate")
+        self.progressbar.grid(row=12, column=0, columnspan=4, sticky="ew", padx=10, pady=5)
+
+        # 13. 状态/进度
         self.status_var = tk.StringVar(value="就绪")
         self.status_label = ttk.Label(self, textvariable=self.status_var, background="#F0F0F0", foreground="#0078D7", anchor="center", font=("微软雅黑", 12, "bold"))
-        self.status_label.grid(row=10, column=0, columnspan=3, sticky="ew", padx=10, pady=5)
-        self.progress_listbox = tk.Listbox(self, height=10, width=70, font=("Consolas", 10))
-        self.progress_listbox.grid(row=11, column=0, columnspan=3, sticky="nsew", padx=10, pady=5)
+        self.status_label.grid(row=13, column=0, columnspan=4, sticky="ew", padx=10, pady=5)
 
-        # 设置grid权重，使控件自适应拉伸
-        for i in range(3):
+        # 14. 日志窗口（支持右键菜单）
+        self.progress_listbox = tk.Listbox(self, height=12, width=80, font=("Consolas", 10))
+        self.progress_listbox.grid(row=14, column=0, columnspan=4, sticky="nsew", padx=10, pady=5)
+        self.progress_listbox.bind("<Button-3>", self.show_log_menu)
+        self.log_menu = tk.Menu(self, tearoff=0)
+        self.log_menu.add_command(label="清空日志", command=self.clear_log)
+        self.log_menu.add_command(label="复制全部", command=self.copy_log)
+
+        # 设置grid权重
+        for i in range(4):
             self.grid_columnconfigure(i, weight=1)
-        self.grid_rowconfigure(2, weight=1)   # url_text
-        self.grid_rowconfigure(3, weight=0)   # playlist_frame
-        self.grid_rowconfigure(11, weight=2)  # progress_listbox
-
-        # 让playlist_frame内部自适应
-        self.playlist_frame.grid_columnconfigure(0, weight=0)
-        self.playlist_frame.grid_columnconfigure(1, weight=1)
-        self.playlist_frame.grid_columnconfigure(2, weight=0)
-        self.playlist_frame.grid_columnconfigure(3, weight=1)
-        self.playlist_frame.grid_columnconfigure(4, weight=0)
-        self.playlist_frame.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(14, weight=2)
 
         self.on_mode_change()
         self.on_proxy_toggle()
+
+    def show_log_menu(self, event):
+        try:
+            self.log_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.log_menu.grab_release()
+
+    def clear_log(self):
+        self.progress_listbox.delete(0, "end")
+
+    def copy_log(self):
+        logs = "\n".join(self.progress_listbox.get(0, "end"))
+        self.clipboard_clear()
+        self.clipboard_append(logs)
 
     def load_settings(self):
         self.path_var.set(self.config.get("download_path", ""))
@@ -173,14 +215,21 @@ class YTDownloaderApp(tk.Tk):
             return
         urls = [u.strip() for u in self.url_text.get("1.0", "end").strip().splitlines() if u.strip()]
         if not urls:
-            messagebox.showerror("错误", "请至少输入一个有效链接。")
+            self.show_error("请至少输入一个有效链接。")
             return
         if not os.path.isdir(self.path_var.get()):
-            messagebox.showerror("错误", "下载路径无效。")
+            self.show_error("下载路径无效。")
             return
+        # 分辨率、码率、字幕、封面等参数校验
+        fmt = self.format_var.get()
+        if not fmt:
+            self.show_error("请选择文件格式。")
+            return
+        # ...可扩展更多校验...
         self.save_settings()
         self.downloading = True
         self.status_var.set("正在下载...")
+        self.progressbar["value"] = 0
         self.progress_listbox.delete(0, "end")
         self.start_btn.config(state="disabled")
         self.pause_btn.config(state="normal")
@@ -191,22 +240,25 @@ class YTDownloaderApp(tk.Tk):
             end = self.range_end.get().strip()
             if start and end:
                 playlist_range = f"{start}-{end}"
-        # 修正：将下载路径传递给 yt-dlp 的 outtmpl
         config_copy = self.config.copy()
         download_path = self.path_var.get()
-        # 确保路径末尾带分隔符
         if not download_path.endswith(os.sep):
             download_path += os.sep
-        # 视频和音频输出模板
         if self.mode_var.get() == "playlist":
             outtmpl = os.path.join(download_path, "%(playlist_index)s-%(title)s.%(ext)s")
         else:
             outtmpl = os.path.join(download_path, "%(title)s.%(ext)s")
         config_copy["output_template"] = outtmpl
+        # 高级参数
+        config_copy["resolution"] = self.resolution_var.get()
+        config_copy["bitrate"] = self.bitrate_var.get()
+        config_copy["download_subtitle"] = self.subtitle_var.get()
+        config_copy["download_cover"] = self.cover_var.get()
+        config_copy["file_format"] = fmt
 
         def update_progress(percent, d):
             self.status_var.set(f"下载进度: {percent:.1f}%")
-            # 只在Listbox中显示每个文件的最新进度（同一文件只保留一行）
+            self.progressbar["value"] = percent
             msg = ""
             if d["status"] == "downloading":
                 filename = d.get("filename", "")
@@ -220,7 +272,7 @@ class YTDownloaderApp(tk.Tk):
             elif d["status"] == "finished":
                 msg = f"{d.get('filename', '')} 下载完成"
             if msg:
-                # 查找是否已存在该文件的进度行
+                # 只保留每个文件一行进度
                 found = False
                 for i in range(self.progress_listbox.size()):
                     line = self.progress_listbox.get(i)
@@ -232,19 +284,32 @@ class YTDownloaderApp(tk.Tk):
                 if not found:
                     self.progress_listbox.insert("end", msg)
                 self.progress_listbox.see("end")
-        def run():
-            try:
-                download(urls, config_copy, make_progress_hook(update_progress), playlist_range)
-                self.status_var.set("下载完成。")
-            except Exception as e:
-                self.status_var.set(f"错误: {e}")
-            finally:
-                self.downloading = False
-                self.start_btn.config(state="normal")
-                self.pause_btn.config(state="disabled")
-                self.cancel_btn.config(state="disabled")
-        self.download_thread = threading.Thread(target=run)
+
+        def run_with_retry(retry=2):
+            for attempt in range(1, retry+2):
+                try:
+                    download(urls, config_copy, make_progress_hook(update_progress), playlist_range)
+                    self.status_var.set("下载完成。")
+                    break
+                except Exception as e:
+                    self.show_error(f"下载失败（第{attempt}次尝试）: {e}")
+                    if attempt == retry+1:
+                        break
+
+            self.downloading = False
+            self.start_btn.config(state="normal")
+            self.pause_btn.config(state="disabled")
+            self.cancel_btn.config(state="disabled")
+
+        self.download_thread = threading.Thread(target=run_with_retry)
         self.download_thread.start()
+
+    def show_error(self, msg):
+        self.status_var.set(msg)
+        self.status_label.config(foreground="red")
+        self.progress_listbox.insert("end", f"[错误] {msg}")
+        self.progress_listbox.itemconfig("end", foreground="red")
+        self.progress_listbox.see("end")
 
     def _format_speed(self, speed):
         # speed: bytes/sec
