@@ -8,6 +8,8 @@ from downloader import download
 from playlist_info import get_playlist_info
 from progress import make_progress_hook
 
+import sys
+
 class YTDownloaderApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -24,6 +26,8 @@ class YTDownloaderApp(tk.Tk):
         self.load_settings()
         self.downloading = False
         self.download_thread = None
+        self._stop_event = threading.Event()
+        self._pause_event = threading.Event()
 
     def create_widgets(self):
         # 1. 模式选择
@@ -114,9 +118,9 @@ class YTDownloaderApp(tk.Tk):
         # 11. 操作按钮
         self.start_btn = tk.Button(self, text="开始下载", command=self.start_download, bg="#4CAF50", fg="white", activebackground="#388E3C", width=12)
         self.start_btn.grid(row=11, column=0, pady=15)
-        self.pause_btn = tk.Button(self, text="暂停下载", state="disabled", bg="#FFA726", fg="white", activebackground="#F57C00", width=12)
+        self.pause_btn = tk.Button(self, text="暂停下载", state="disabled", bg="#FFA726", fg="white", activebackground="#F57C00", width=12, command=self.pause_download)
         self.pause_btn.grid(row=11, column=1)
-        self.cancel_btn = tk.Button(self, text="取消下载", state="disabled", bg="#E57373", fg="white", activebackground="#C62828", width=12)
+        self.cancel_btn = tk.Button(self, text="取消下载", state="disabled", bg="#E57373", fg="white", activebackground="#C62828", width=12, command=self.cancel_download)
         self.cancel_btn.grid(row=11, column=2)
 
         # 12. 进度条
@@ -288,21 +292,54 @@ class YTDownloaderApp(tk.Tk):
         def run_with_retry(retry=2):
             for attempt in range(1, retry+2):
                 try:
-                    download(urls, config_copy, make_progress_hook(update_progress), playlist_range)
+                    download(urls, config_copy, make_progress_hook(self._wrap_progress(update_progress)), playlist_range, stop_event=self._stop_event, pause_event=self._pause_event)
                     self.status_var.set("下载完成。")
                     break
                 except Exception as e:
+                    if self._stop_event.is_set():
+                        self.status_var.set("下载已取消。")
+                        break
                     self.show_error(f"下载失败（第{attempt}次尝试）: {e}")
                     if attempt == retry+1:
                         break
-
             self.downloading = False
             self.start_btn.config(state="normal")
             self.pause_btn.config(state="disabled")
             self.cancel_btn.config(state="disabled")
-
         self.download_thread = threading.Thread(target=run_with_retry)
         self.download_thread.start()
+
+    def _wrap_progress(self, func):
+        # 处理暂停
+        def wrapper(percent, d):
+            while self._pause_event.is_set() and not self._stop_event.is_set():
+                if not self.downloading:
+                    break
+                self.status_var.set("已暂停，点击继续下载")
+                self.update()
+                import time; time.sleep(0.2)
+            if not self._stop_event.is_set():
+                func(percent, d)
+        return wrapper
+
+    def pause_download(self):
+        if not self.downloading:
+            return
+        if not self._pause_event.is_set():
+            self._pause_event.set()
+            self.pause_btn.config(text="继续下载")
+        else:
+            self._pause_event.clear()
+            self.pause_btn.config(text="暂停下载")
+
+    def cancel_download(self):
+        if not self.downloading:
+            return
+        self._stop_event.set()
+        self.status_var.set("正在取消下载...")
+        self.pause_btn.config(state="disabled")
+        self.cancel_btn.config(state="disabled")
+        # 线程会自动检测 _stop_event 并退出
 
     def show_error(self, msg):
         self.status_var.set(msg)
