@@ -63,3 +63,45 @@
 ## 仓库地址
 
 [https://github.com/ttuubb/YT-cline.git](https://github.com/ttuubb/YT-cline.git)
+
+## Ubuntu 下打包为可执行文件
+
+你可以使用 PyInstaller 工具将本项目打包为 Ubuntu 下的可执行文件，步骤如下：
+
+1. **安装依赖**
+
+   ```bash
+   sudo apt update
+   sudo apt install python3 python3-pip ffmpeg
+   pip3 install pyinstaller yt-dlp
+   ```
+
+2. **进入项目目录**
+
+   ```bash
+   cd /home/ttuubb/Document/yt-dlp
+   ```
+
+3. **打包命令**
+
+   ```bash
+   pyinstaller --onefile --noconsole gui.py
+   ```
+
+   - `--onefile` 生成单一可执行文件，`--noconsole` 不弹出终端窗口（如需调试可去掉）。
+   - 打包完成后，`dist/gui` 即为可执行文件。
+
+4. **运行打包后的程序**
+
+   ```bash
+   ./dist/gui
+   ```
+
+5. **注意事项**
+   - 打包后首次运行可能较慢。
+   - 若需图标，需将 `icon.ico` 转为 `.png` 并用 `--icon=icon.png` 参数。
+   - 若遇到字体、tkinter、ffmpeg等依赖问题，请确保系统已安装相关包。
+
+---
+
+如需自动化脚本或遇到打包问题，可随时提问。
