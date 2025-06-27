@@ -13,6 +13,7 @@ def collect_download_params(gui):
     params["proxy_address"] = gui.proxy_var.get()
     params["cookie_file"] = gui.cookie_var.get()
     params["mode"] = gui.mode_var.get()
+    params["shorten_filename"] = gui.shorten_filename_var.get() # 添加这一行
     params["playlist_range"] = None
     if params["mode"] == "playlist":
         start = gui.range_start.get().strip()
@@ -50,4 +51,21 @@ def build_config_for_download(config, params):
     config_copy["proxy_address"] = params["proxy_address"]
     config_copy["cookie_file"] = params["cookie_file"]
     config_copy["mode"] = params["mode"]
+    config_copy["shorten_filename"] = params.get("shorten_filename", False) # 获取缩短文件名选项
+
+    # 根据 shorten_filename 选项调整输出模板
+    if config_copy["shorten_filename"]:
+        if params["mode"] == "playlist":
+            outtmpl = os.path.join(download_path, "%(playlist_index)s-%(id)s.%(ext)s") # 使用ID缩短文件名
+        else:
+            outtmpl = os.path.join(download_path, "%(id)s.%(ext)s") # 使用ID缩短文件名
+        config_copy["restrict_filenames"] = True # 启用yt-dlp的文件名限制
+    else:
+        if params["mode"] == "playlist":
+            outtmpl = os.path.join(download_path, "%(playlist_index)s-%(title)s.%(ext)s")
+        else:
+            outtmpl = os.path.join(download_path, "%(title)s.%(ext)s")
+        config_copy["restrict_filenames"] = False # 禁用yt-dlp的文件名限制
+
+    config_copy["output_template"] = outtmpl
     return config_copy

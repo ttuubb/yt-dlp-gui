@@ -1,14 +1,28 @@
 import yt_dlp
+import re
+import os
+
+def sanitize_filename(filename, max_length=80):
+    filename = re.sub(r'[\\/:*?"<>|\n\r]', '_', filename)
+    # 保留扩展名，截断主文件名
+    if '.' in filename:
+        name, ext = filename.rsplit('.', 1)
+        ext = '.' + ext
+    else:
+        name, ext = filename, ''
+    if len(name) > max_length:
+        name = name[:max_length]
+    return name + ext
 
 def build_ydl_opts(config, progress_hook, playlist_range=None):
     ydl_opts = {
-        "outtmpl": config.get("output_template", "%(title)s.%(ext)s"),
         "progress_hooks": [progress_hook],
         "format": "bestvideo+bestaudio/best",
         "noplaylist": config.get("mode") == "single",
         "quiet": True,
         "ignoreerrors": True,
         "merge_output_format": config.get("file_format", "mp4"),
+        "restrictfilenames": config.get("restrict_filenames", False), # 添加 restrictfilenames 选项
     }
     fmt = config.get("file_format", "mp4")
     if fmt in ("mp3", "m4a", "flac", "wav", "aac", "opus"):
@@ -57,10 +71,14 @@ def build_ydl_opts(config, progress_hook, playlist_range=None):
     if playlist_range:
         ydl_opts["playlist_items"] = playlist_range
 
+    # 文件名模板处理，强制使用安全文件名
+    output_template = config.get("output_template")
+    if output_template:
+        # 只允许字符串模板，不再用dict或函数
+        ydl_opts["outtmpl"] = output_template
     return ydl_opts
 
 def download(urls, config, progress_hook, playlist_range=None, stop_event=None, pause_event=None):
-    # 包装进度回调，支持暂停/取消
     def wrapped_hook(d):
         if stop_event and stop_event.is_set():
             raise Exception("用户取消下载")
@@ -70,4 +88,5 @@ def download(urls, config, progress_hook, playlist_range=None, stop_event=None, 
         progress_hook(d)
     ydl_opts = build_ydl_opts(config, wrapped_hook, playlist_range)
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(urls)
+        for url in urls:
+            ydl.download([url])

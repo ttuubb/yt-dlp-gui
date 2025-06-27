@@ -96,8 +96,10 @@ class YTDownloaderApp(tk.Tk):
         # 8. 其它高级选项
         self.subtitle_var = tk.BooleanVar()
         self.cover_var = tk.BooleanVar()
+        self.shorten_filename_var = tk.BooleanVar()
         ttk.Checkbutton(self, text="下载字幕", variable=self.subtitle_var).grid(row=7, column=0, sticky="w", padx=10)
         ttk.Checkbutton(self, text="下载封面", variable=self.cover_var).grid(row=7, column=1, sticky="w", padx=2)
+        ttk.Checkbutton(self, text="自动缩短文件名", variable=self.shorten_filename_var).grid(row=7, column=2, sticky="w", padx=2)
 
         # 9. 代理设置
         self.use_proxy_var = tk.BooleanVar()
@@ -172,6 +174,7 @@ class YTDownloaderApp(tk.Tk):
         self.proxy_var.set(self.config.get("proxy_address", ""))
         self.cookie_var.set(self.config.get("cookie_file", ""))
         self.mode_var.set(self.config.get("mode", "single"))
+        self.shorten_filename_var.set(self.config.get("shorten_filename", True))
 
     def save_settings(self):
         self.config["download_path"] = self.path_var.get()
@@ -180,6 +183,7 @@ class YTDownloaderApp(tk.Tk):
         self.config["proxy_address"] = self.proxy_var.get()
         self.config["cookie_file"] = self.cookie_var.get()
         self.config["mode"] = self.mode_var.get()
+        self.config["shorten_filename"] = self.shorten_filename_var.get()
         save_config(self.config)
 
     def browse_path(self):
