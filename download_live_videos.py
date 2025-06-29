@@ -24,21 +24,25 @@ def get_video_list(channel_url):
         "yt-dlp",
         "--proxy", f"http://{proxy}",
         "--cookies", cookies_path,
-        "--dateafter", three_days_ago.strftime("%Y%m%d"),
-        "--match-filter", "is_live",
         "--flat-playlist",
         "-j",
         channel_url
     ]
     print(f"获取：{channel_url}")
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print("yt-dlp stdout:", result.stdout)
+    print("yt-dlp stderr:", result.stderr)
     videos = []
     for line in result.stdout.strip().split("\n"):
+        if not line:
+            continue
         try:
             video_info = json.loads(line)
             videos.append(video_info)
+        except json.JSONDecodeError as e:
+            print(f"JSON解析出错: {e}，行: {line}")
         except Exception as e:
-            print("解析出错：", e)
+            print(f"其他解析出错: {e}，行: {line}")
     return videos
 
 def download_video(video_url, upload_date):
