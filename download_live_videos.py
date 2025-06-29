@@ -1,6 +1,7 @@
 import os
 import subprocess
 from datetime import datetime, timedelta
+import json
 
 # 频道链接列表
 channels = [
@@ -11,6 +12,7 @@ channels = [
 
 # 本地代理配置
 proxy = "127.0.0.1:10808"
+cookies_path = "cookies.txt"
 
 # 获取三天前的时间
 now = datetime.utcnow()
@@ -21,6 +23,7 @@ def get_video_list(channel_url):
     cmd = [
         "yt-dlp",
         "--proxy", f"http://{proxy}",
+        "--cookies", cookies_path,
         "--dateafter", three_days_ago.strftime("%Y%m%d"),
         "--match-filter", "is_live",
         "--flat-playlist",
@@ -32,7 +35,6 @@ def get_video_list(channel_url):
     videos = []
     for line in result.stdout.strip().split("\n"):
         try:
-            import json
             video_info = json.loads(line)
             videos.append(video_info)
         except Exception as e:
@@ -47,6 +49,7 @@ def download_video(video_url, upload_date):
     cmd = [
         "yt-dlp",
         "--proxy", f"http://{proxy}",
+        "--cookies", cookies_path,
         "-f", "best",
         "-o", output_template,
         video_url
@@ -61,7 +64,6 @@ def main():
             upload_date = video.get("upload_date", None)
             if not upload_date:
                 continue
-            # 下载
             print(f"准备下载: {video_url} => 日期目录: {upload_date}")
             download_video(video_url, upload_date)
 
