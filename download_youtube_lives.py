@@ -1,6 +1,7 @@
 import subprocess
 from datetime import datetime, timedelta
 import csv
+import pandas as pd
 
 channels = [
     "https://www.youtube.com/@dakang",
@@ -34,3 +35,5 @@ with open("live_video_infos.csv", "w", encoding="utf-8", newline='') as f:
     writer = csv.writer(f)
     writer.writerow(["url", "title", "upload_date"])
     writer.writerows(infos)
+df = pd.read_csv("live_video_infos.csv")   
+df.to_csv("live_video_infos.csv",encoding="utf-8-sig") 
