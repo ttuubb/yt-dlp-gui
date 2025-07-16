@@ -11,6 +11,7 @@ from logic import collect_download_params, validate_params, build_config_for_dow
 from logger import update_log
 
 import sys
+import ctypes
 
 class YTDownloaderApp(tk.Tk):
     def __init__(self):
@@ -20,9 +21,18 @@ class YTDownloaderApp(tk.Tk):
         self.resizable(True, True)
         self.default_font = ("微软雅黑", 11)
         self.option_add("*Font", self.default_font)
-        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
+        icon_path = os.path.join(os.path.dirname(__file__), "downloader.ico")
         if os.path.exists(icon_path):
-            self.iconbitmap(icon_path)
+            try:
+                self.iconbitmap(icon_path)
+                # 设置任务栏图标
+                try:
+                    if os.name == 'nt':
+                        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('YTDownloader.YTDownloaderApp.v1')
+                except Exception as e:
+                    print(f"Error setting taskbar icon: {e}")
+            except Exception as e:
+                print(f"Error setting icon: {e}")
         self.config = load_config()
         self.create_widgets()
         self.load_settings()
